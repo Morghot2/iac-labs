@@ -29,7 +29,7 @@ jobs:
 
       - name: Install project dependencies
         working-directory: ./example-app
-        run: poetry install
+        run: poetry install --no-root
 
       - name: Run local task
         run: poetry run task local
