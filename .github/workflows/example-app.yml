@@ -10,8 +10,10 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./example-app
 
     steps:
       - name: Checkout code
@@ -37,7 +39,7 @@ jobs:
       - name: Run unit tests
         run: poetry run task test
 
-      - name: Run static code analysis (lint)
+      - name: Run static code analysis
         run: poetry run task lint
 
       - name: Run code formatter
@@ -45,4 +47,3 @@ jobs:
 
       - name: Run security tests
         run: poetry run task security
-
