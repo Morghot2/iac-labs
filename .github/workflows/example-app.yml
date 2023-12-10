@@ -2,33 +2,27 @@ name: Python application
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-
-defaults:
-  run:
-    working-directory: ./example-app
+    branches:
+      - main
 
 jobs:
-  install-dependencies:
+  build:
     runs-on: ubuntu-latest
-    concurrency:
-      group: dependencies-group
+    defaults:
+      run:
+        working-directory: ./example-app
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Cache build venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/work/<path>/example-app/.venv
-          key: ${{ runner.os }}-venv
+      - name: Remove python3-virtualenv for Ubuntu 20.04 VDI
+        run: sudo apt-get -y purge python3-virtualenv
 
       - name: Install Poetry
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           export PATH=$PATH:$HOME/.local/bin
@@ -36,37 +30,55 @@ jobs:
       - name: Check Poetry installation
         run: poetry debug info
 
+      - name: Cache Poetry packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
       - name: Install project dependencies
-        run: poetry install
+        run: poetry install --no-root
 
-  static-code-analysis:
+  linting_formatting_security:
     runs-on: ubuntu-latest
-    concurrency:
-      group: static-analysis-group
-    needs: install-dependencies
+    needs: build
+
+    strategy:
+      matrix:
+        step: [lint, formatter, security]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Run linter
-        run: poetry run task lint
+      - name: Cache Poetry packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
 
-      - name: Run code formatter
-        run: poetry run task formatter
+      - name: Run ${{ matrix.step }} step
+        run: poetry run task ${{ matrix.step }}
 
-      - name: Run security tests
-        run: poetry run task security
-
-  unit-tests:
+  unit_tests:
     runs-on: ubuntu-latest
-    concurrency:
-      group: unit-tests-group
-    needs: install-dependencies
+    needs: [build, linting_formatting_security]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Cache Poetry packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
 
       - name: Run unit tests
         run: poetry run task test
