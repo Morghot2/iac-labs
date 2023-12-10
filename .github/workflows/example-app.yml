@@ -28,6 +28,7 @@ jobs:
         run: ls -R
 
       - name: Install project dependencies
+        working-directory: ./example-app
         run: poetry install
 
       - name: Run local task
