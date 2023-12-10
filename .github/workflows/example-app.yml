@@ -8,12 +8,13 @@ on:
     branches:
       - main
 
+defaults:
+  run:
+    working-directory: ./example-app
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./example-app
 
     steps:
       - name: Checkout code
@@ -58,7 +59,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Run unit tests
-        run: poetry run task test
       - name: Run unit tests
         run: poetry run task test
